@@ -61,7 +61,7 @@ class AlbertTransformerEncoder(tf.keras.Model):
                  initializer=tf.keras.initializers.TruncatedNormal(stddev=0.02),
                  return_all_encoder_outputs=False,
                  **kwargs):
-        super(AlbertTransformerEncoder, self).__init__()
+        super(AlbertTransformerEncoder, self).__init__(**kwargs)
 
         if inner_group_num != 1:
             raise ValueError("We only support 'inner_group_num' as 1.")
@@ -212,9 +212,9 @@ class AlbertTransformerEncoder(tf.keras.Model):
 
 if __name__ == '__main__':
     import numpy as np
-    model = AlbertTransformerEncoder(vocab_size=20128, type_vocab_size=2)
-    # model.build([[None, 50], [None, 50], [None, 50]])
-    model([tf.ones([1, 50]), tf.ones([1, 50]), tf.ones([1, 50])])
+    model = AlbertTransformerEncoder(vocab_size=20128, type_vocab_size=2, name="transformer_encoder")
+    model.build([[None, 50], [None, 50], [None, 50]])
+    # model([tf.ones([1, 50]), tf.ones([1, 50]), tf.ones([1, 50])])
     # input1 = tf.keras.Input(shape=(50,), dtype=tf.int32)
     # input2 = tf.keras.Input(shape=(50,), dtype=tf.int32)
     # input3 = tf.keras.Input(shape=(50,), dtype=tf.int32)
@@ -224,7 +224,11 @@ if __name__ == '__main__':
     model.summary()
 
 
-    print(model.get_layer(name="transformer/layer_0").get_weights())
+    for layer in model.layers:
+        for weight in layer.get_weights():
+            print(weight.shape)
+
+    # print(model.get_layer(name="transformer/layer_0").get_weights())
     # print(encoder.get_weights())
     # for layer_weights in encoder.get_weights():
     #     print(layer_weights.shape)

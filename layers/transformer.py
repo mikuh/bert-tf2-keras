@@ -102,7 +102,7 @@ class Transformer(tf.keras.layers.Layer):
             kernel_constraint=self._kernel_constraint,
             bias_constraint=self._bias_constraint,
             name="transformer/self_attention_output")
-        self._attention_output_dense.build(input_shape[0][:2] + [12, input_shape[0][-1]//12])
+        self._attention_output_dense.build(input_shape[0][:2] + [self._num_heads, input_shape[0][-1]//self._num_heads])
 
         self._attention_dropout = tf.keras.layers.Dropout(rate=self._dropout_rate)
         # Use float32 in layernorm for numeric stability.

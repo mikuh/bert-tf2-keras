@@ -124,6 +124,10 @@ venv.bak/
 .mypy_cache/
 .dmypy.json
 dmypy.json
+.idea/
+vocab_file/
+data_dir/
+tf_records/
 
 # Pyre type checker
 .pyre/
