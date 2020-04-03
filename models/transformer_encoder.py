@@ -21,6 +21,7 @@ class TransformerEncoder(tf.keras.Model):
                  **kwargs):
         super(TransformerEncoder, self).__init__()
 
+        self.vocab_size = vocab_size
         self.num_layers = num_layers
         self.num_attention_heads = num_attention_heads
         self.intermediate_size = intermediate_size
@@ -86,7 +87,7 @@ class TransformerEncoder(tf.keras.Model):
             name='word_embeddings')
 
     def call(self, inputs):
-        word_ids, mask, type_ids = inputs
+        word_ids, mask, type_ids = inputs["input_word_ids"], inputs["input_mask"], inputs["input_type_ids"]
 
         word_embeddings = self._embedding_layer(tf.cast(word_ids, tf.int32))
         position_embeddings = self._position_embedding_layer(tf.cast(word_embeddings, tf.int32))

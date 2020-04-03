@@ -1,10 +1,10 @@
 import tensorflow as tf
-from absl import logging
+import logging
 import utils
 from utils import tokenization
 import os
 import collections
-
+logging.basicConfig(level=logging.INFO)
 
 class PaddingInputExample(object):
     """Fake example so the num input examples is a multiple of the batch size.
@@ -209,6 +209,6 @@ if __name__ == '__main__':
     max_seq_length = 64
     tokenizer = tokenization.FullTokenizer("/home/geb/PycharmProjects/bert_ngc/vocab_file/albert_zh/vocab.txt")
     sc = SentenceClassifierProcessor()
-    train_examples = sc.get_test_examples("/home/geb/PycharmProjects/bert/data_dir")
-    file_based_convert_examples_to_features(train_examples, sc.get_labels(), max_seq_length, tokenizer,
-                                            "../tf_records/sentence_classifier/test.record0")
+    examples = sc.get_train_examples("/home/geb/PycharmProjects/bert/data_dir")
+    file_based_convert_examples_to_features(examples, sc.get_labels(), max_seq_length, tokenizer,
+                                            "../tf_records/sentence_classifier/train.record0")

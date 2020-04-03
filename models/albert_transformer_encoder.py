@@ -95,7 +95,6 @@ class AlbertTransformerEncoder(tf.keras.Model):
             kernel_initializer=initializer,
             name='pooler_transform')
 
-
     def build(self, input_shape):
         if isinstance(input_shape, tf.TensorShape):
             input_shape = input_shape.as_list()
@@ -166,12 +165,12 @@ class AlbertTransformerEncoder(tf.keras.Model):
 
     def call(self, inputs):
         word_ids, mask, type_ids = inputs
-
         word_embeddings = self._embedding_layer(tf.cast(word_ids, tf.int32))
         position_embeddings = self._position_embedding_layer(tf.cast(word_embeddings, tf.int32))
         type_embeddings = self._type_embedding_layer(tf.cast(type_ids, tf.int32))
 
-        embeddings = tf.keras.layers.Add()([word_embeddings, position_embeddings, type_embeddings])
+        # embeddings = tf.keras.layers.Add()([word_embeddings, position_embeddings, type_embeddings])
+        embeddings = word_embeddings + position_embeddings + type_embeddings
         embeddings = self._embedding_layer_normalization(embeddings)
         embeddings = self._embedding_dropout(embeddings, training=True)
 
@@ -212,9 +211,12 @@ class AlbertTransformerEncoder(tf.keras.Model):
 
 if __name__ == '__main__':
     import numpy as np
+
     model = AlbertTransformerEncoder(vocab_size=20128, type_vocab_size=2, name="transformer_encoder")
-    model.build([[None, 50], [None, 50], [None, 50]])
-    # model([tf.ones([1, 50]), tf.ones([1, 50]), tf.ones([1, 50])])
+    model.build([[None, 64], [None, 64], [None, 64]])
+    # from utils.data_utils import create_classifier_dataset
+    # train_data = create_classifier_dataset("tf_records/sentence_classifier/train.record0", 64,32)
+    # model(train_data)
     # input1 = tf.keras.Input(shape=(50,), dtype=tf.int32)
     # input2 = tf.keras.Input(shape=(50,), dtype=tf.int32)
     # input3 = tf.keras.Input(shape=(50,), dtype=tf.int32)
@@ -222,7 +224,6 @@ if __name__ == '__main__':
     # outputs = encoder([input1, input2, input3])
     # model = tf.keras.Model(inputs=[input1, input2, input3], outputs=outputs)
     model.summary()
-
 
     for layer in model.layers:
         for weight in layer.get_weights():

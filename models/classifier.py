@@ -2,9 +2,7 @@ import tensorflow as tf
 from utils import tf_utils
 from configs import AlbertConfig, BertConfig
 import models
-# import logging
-#
-# logging.basicConfig(level=logging.INFO)
+
 
 class BertClassifier(tf.keras.Model):
 
@@ -38,13 +36,20 @@ class BertClassifier(tf.keras.Model):
 
         self._predictions = tf.keras.layers.Activation(tf.nn.log_softmax)
 
-    def build(self, input_shape):
-        self._encoder_layer.build(input_shape)
-        self._logits_layer.build([input_shape[0][0], bert_config.hidden_size])
-        self._predictions.build([input_shape[0][0], self._config['num_classes']])
-        super(BertClassifier, self).build(input_shape)
+        self._encoder_layer.build([[None, self._config["sequence_length"]], [None, self._config["sequence_length"]],
+                                   [None, self._config["sequence_length"]]])
+        self._logits_layer.build([None, self.bert_config.hidden_size])
+        self._predictions.build([None, self._config['num_classes']])
+
+    # def build(self, input_shape=None):
+    #
+    #     super(BertClassifier, self).build(
+    #         [[None, self._config["sequence_length"]], [None, self._config["sequence_length"]],
+    #          [None, self._config["sequence_length"]]])
 
     def call(self, inputs):
+
+        inputs = [inputs["input_word_ids"], inputs["input_mask"], inputs["input_type_ids"]]
 
         _, cls_output = self._encoder_layer(inputs)
 
@@ -131,7 +136,7 @@ class BertClassifier(tf.keras.Model):
                     [self.bert_config.num_attention_heads, -1]),
                 tf.reshape(variables.get_tensor(
                     "bert/encoder/transformer/group_0/inner_group_0/attention_1/output/dense/kernel"),
-                           [self.bert_config.num_attention_heads, -1, self.bert_config.hidden_size]),
+                    [self.bert_config.num_attention_heads, -1, self.bert_config.hidden_size]),
                 variables.get_tensor("bert/encoder/transformer/group_0/inner_group_0/attention_1/output/dense/bias"),
                 variables.get_tensor("bert/encoder/transformer/group_0/inner_group_0/LayerNorm/beta"),
                 variables.get_tensor("bert/encoder/transformer/group_0/inner_group_0/LayerNorm/gamma"),
@@ -155,37 +160,3 @@ class BertClassifier(tf.keras.Model):
             if name.startswith("bert"):
                 print(f"{name}, shape={shape}, *INIT FROM CKPT SUCCESS*")
 
-
-if __name__ == '__main__':
-
-    checkpoint_file = "/home/geb/PycharmProjects/bert_ngc/vocab_file/albert_zh/bert_model.ckpt"
-    bert_config = AlbertConfig.from_json_file(
-        "/home/geb/PycharmProjects/bert_ngc/vocab_file/albert_zh/bert_config.json")
-
-    cls = BertClassifier(bert_config, 50, 6)
-    cls.build([[None, 50], [None, 50], [None, 50]])
-    # cls.summary()
-
-    init_vars = tf.train.list_variables(checkpoint_file)
-    for name, shape in init_vars:
-        # print("=============%s==============" % name)
-        # print(tf.train.load_variable(init_checkpoint, name))
-        print(name, shape)
-
-    cls.init_pre_training_weights(checkpoint_file)
-
-    # print("================================")
-    # print(cls._encoder_layer.get_layer("transformer/layer_0").get_weights()[15].shape)
-
-    # print(cls._encoder_layer.get_layer("word_embeddings").get_weights()[0].shape)
-
-    # print(cls._encoder_layer.get_layer("transformer/self_attention").get_weights())
-    # print(cls._encoder_layer.get_layer("pooler_transform").get_weights())
-
-    # variables = tf.train.load_checkpoint(checkpoint_file)
-    # print(variables.get_tensor("bert/encoder/transformer/group_0/inner_group_0/LayerNorm_1/beta").shape)
-    # word_embeddings
-    # transformer/layer_0
-    # print(cls._encoder_layer.get_layer("embedding_projection").set_weights(
-    #     [tf.train.load_variable(checkpoint_file, "bert/encoder/embedding_hidden_mapping_in/kernel"),
-    #      tf.train.load_variable(checkpoint_file, "bert/encoder/embedding_hidden_mapping_in/bias")]))

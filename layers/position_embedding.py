@@ -91,7 +91,6 @@ class PositionEmbedding(tf.keras.layers.Layer):
                 tf.slice(self._position_embeddings, [0, 0], [seq_length, width]), axis=0)
         else:
             position_embeddings = tf.expand_dims(self._position_embeddings, axis=0)
-
         return position_embeddings
 
     def get_config(self):
