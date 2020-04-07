@@ -3,10 +3,12 @@ from utils import performance
 from utils import optimization
 from utils import keras_utils
 from utils.data_utils import create_classifier_dataset
+from utils import distribution_utils
 from models import BertClassifier
 from configs import AlbertConfig
 import math
 import os
+import keras.backend as K
 
 
 def get_optimizer(initial_lr, steps_per_epoch, epochs, warmup_steps):
@@ -23,7 +25,10 @@ def get_loss_fn(num_classes):
 
     def classification_loss_fn(labels, logits):
         """Classification loss."""
+        # K.print_tensor(labels, message=',y_true = ')
+        # K.print_tensor(logits, message=',y_predict = ')
         labels = tf.squeeze(labels)
+        # y_true = K.print_tensor(labels, message='y_true = ')
         log_probs = tf.nn.log_softmax(logits, axis=-1)
         one_hot_labels = tf.one_hot(
             tf.cast(labels, dtype=tf.int32), depth=num_classes, dtype=tf.float32)
@@ -42,58 +47,71 @@ def get_callbacks(train_batch_size, log_steps, model_dir):
     custom_callback = keras_utils.TimeHistory(
         batch_size=train_batch_size,
         log_steps=log_steps,
-        logdir=os.path.join(model_dir, 'logs/'))
+        logdir=os.path.join(model_dir, 'logs'))
 
-    summary_callback = tf.keras.callbacks.TensorBoard(os.path.join(model_dir, 'summaries'))
+    summary_callback = tf.keras.callbacks.TensorBoard(os.path.join(model_dir, 'graph'), update_freq='batch')
 
-    checkpoint_path = os.path.join(model_dir, 'checkpoint-{epoch:03d}')
+    checkpoint_path = os.path.join(model_dir, 'checkpoint-{batch:06d}')
     checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
-        checkpoint_path, save_weights_only=True, save_freq=5000)
+        checkpoint_path, save_weights_only=True, save_freq=3200)
 
     return [custom_callback, summary_callback, checkpoint_callback]
 
 
 if __name__ == '__main__':
     train_batch_size = 32
-    eval_batch_size = 64
+    eval_batch_size = 32
     sequence_length = 64
     learning_rate = 2e-5
-    train_data_size = 368624
+    train_data_size = 52661 # 368624
     eval_data_size = 52661
     steps_per_epoch = train_data_size // train_batch_size
-    epochs = 3
+    epochs = 1
     warmup_steps = int(epochs * train_data_size * 0.1 / train_batch_size)
     eval_steps = int(math.ceil(eval_data_size / eval_batch_size))
     num_classes = 2
-    log_steps = 100
+    log_steps = 1
     model_dir = "results/classifier/"
     bert_config_file = "/home/geb/PycharmProjects/bert_ngc/vocab_file/albert_zh/bert_config.json"
     checkpoint_file = "/home/geb/PycharmProjects/bert_ngc/vocab_file/albert_zh/bert_model.ckpt"
 
-    # load data
-    train_data = create_classifier_dataset("tf_records/sentence_classifier/train.record0", sequence_length, train_batch_size)
+    strategy = distribution_utils.get_distribution_strategy(
+        distribution_strategy='one_device',
+        num_gpus=1,
+        tpu_address=False)
 
-    dev_data = create_classifier_dataset("tf_records/sentence_classifier/dev.record0", sequence_length, eval_batch_size, False)
+    with strategy.scope():
+        # load data
+        train_data = create_classifier_dataset("tf_records/sentence_classifier/train.record0", sequence_length,
+                                               train_batch_size)
 
 
 
+        dev_data = create_classifier_dataset("tf_records/sentence_classifier/dev.record0", sequence_length,
+                                             eval_batch_size, False)
 
-    bert_config = AlbertConfig.from_json_file(bert_config_file)
 
-    cls = BertClassifier(bert_config, sequence_length, num_classes)
-    # cls.build([[None, sequence_length], [None, sequence_length], [None, sequence_length]])
-    # cls(dev_data)
-    cls.init_pre_training_weights(checkpoint_file)
+        bert_config = AlbertConfig.from_json_file(bert_config_file)
 
-    optimizer = get_optimizer(learning_rate, steps_per_epoch, epochs, warmup_steps)
-    loss_fn = get_loss_fn(num_classes)
-    callbacks = get_callbacks(train_batch_size, log_steps, model_dir)
+        cls = BertClassifier(bert_config, sequence_length, num_classes)
+        # cls.build([[None, sequence_length], [None, sequence_length], [None, sequence_length]])
+        # cls(dev_data)
+        cls.init_pre_training_weights(checkpoint_file)
 
-    cls.compile(optimizer=optimizer, loss=loss_fn, metrics=[metric_fn()])
-    cls.fit(
-        x=train_data,
-        validation_data=dev_data,
-        steps_per_epoch=steps_per_epoch,
-        epochs=epochs,
-        validation_steps=eval_steps,
-        callbacks=callbacks)
+        optimizer = get_optimizer(learning_rate, steps_per_epoch, epochs, None)
+        loss_fn = get_loss_fn(num_classes)
+        callbacks = get_callbacks(train_batch_size, log_steps, model_dir)
+
+        cls.compile(optimizer=optimizer, loss=loss_fn, metrics=[metric_fn()])
+
+        print(cls._encoder_layer.get_layer("word_embeddings").get_weights())
+
+        cls.fit(
+            train_data,
+            validation_data=dev_data,
+            steps_per_epoch=steps_per_epoch,
+            epochs=epochs,
+            validation_steps=eval_steps,
+            callbacks=callbacks)
+
+        print(cls._encoder_layer.get_layer("word_embeddings").get_weights())

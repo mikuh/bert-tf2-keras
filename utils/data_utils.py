@@ -64,7 +64,6 @@ def create_classifier_dataset(file_path,
         return (x, y)
 
     dataset = dataset.map(_select_data_from_record)
-
     if is_training:
         dataset = dataset.shuffle(100)
         dataset = dataset.repeat()

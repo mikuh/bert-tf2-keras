@@ -22,7 +22,7 @@ class PaddingInputExample(object):
 class InputExample(object):
     """A single training/test example for simple sequence classification."""
 
-    def __init__(self, guid, text_a, text_b=None, label=None):
+    def __init__(self, guid, text_a, label=None):
         """Constructs a InputExample.
         Args:
           guid: Unique id for the example.
@@ -209,6 +209,6 @@ if __name__ == '__main__':
     max_seq_length = 64
     tokenizer = tokenization.FullTokenizer("/home/geb/PycharmProjects/bert_ngc/vocab_file/albert_zh/vocab.txt")
     sc = SentenceClassifierProcessor()
-    examples = sc.get_train_examples("/home/geb/PycharmProjects/bert/data_dir")
+    examples = sc.get_dev_examples("/home/geb/PycharmProjects/bert/data_dir")
     file_based_convert_examples_to_features(examples, sc.get_labels(), max_seq_length, tokenizer,
-                                            "../tf_records/sentence_classifier/train.record0")
+                                            "../tf_records/sentence_classifier/dev.record0")

@@ -48,7 +48,6 @@ class BertClassifier(tf.keras.Model):
     #          [None, self._config["sequence_length"]]])
 
     def call(self, inputs):
-
         inputs = [inputs["input_word_ids"], inputs["input_mask"], inputs["input_type_ids"]]
 
         _, cls_output = self._encoder_layer(inputs)

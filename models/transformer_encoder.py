@@ -19,9 +19,10 @@ class TransformerEncoder(tf.keras.Model):
                  initializer=tf.keras.initializers.TruncatedNormal(stddev=0.02),
                  return_all_encoder_outputs=False,
                  **kwargs):
-        super(TransformerEncoder, self).__init__()
+        super(TransformerEncoder, self).__init__(**kwargs)
 
         self.vocab_size = vocab_size
+        self.hidden_size = hidden_size
         self.num_layers = num_layers
         self.num_attention_heads = num_attention_heads
         self.intermediate_size = intermediate_size
@@ -29,22 +30,36 @@ class TransformerEncoder(tf.keras.Model):
         self.dropout_rate = dropout_rate
         self.attention_dropout_rate = attention_dropout_rate
         self.initializer = initializer = tf.keras.initializers.get(initializer)
-
+        self.type_vocab_size = type_vocab_size
         self.return_all_encoder_outputs = return_all_encoder_outputs
 
+        self.max_sequence_length = max_sequence_length
+
         if not max_sequence_length:
-            max_sequence_length = sequence_length
+            self.max_sequence_length = sequence_length
+
+    def build(self, input_shape):
+        if isinstance(input_shape, tf.TensorShape):
+            input_shape = input_shape.as_list()
+
+        self._embedding_layer = layers.OnDeviceEmbedding(
+            vocab_size=self.vocab_size,
+            embedding_width=self.hidden_size,
+            initializer=self.initializer,
+            name='word_embeddings')
 
         # Always uses dynamic slicing for simplicity.
         self._position_embedding_layer = layers.PositionEmbedding(
-            initializer=initializer,
+            initializer=self.initializer,
             use_dynamic_slicing=True,
-            max_sequence_length=max_sequence_length)
+            max_sequence_length=self.max_sequence_length,
+            name='position_embeddings')
+        self._position_embedding_layer.build(input_shape[0] + [self.hidden_size])
 
         self._type_embedding_layer = layers.OnDeviceEmbedding(
-            vocab_size=type_vocab_size,
-            embedding_width=hidden_size,
-            initializer=initializer,
+            vocab_size=self.type_vocab_size,
+            embedding_width=self.hidden_size,
+            initializer=self.initializer,
             use_one_hot=True,
             name='type_embeddings')
 
@@ -54,15 +69,9 @@ class TransformerEncoder(tf.keras.Model):
             epsilon=1e-12,
             dtype=tf.float32)
 
-        self._dropout = tf.keras.layers.Dropout(rate=dropout_rate)
+        self._embedding_dropout = tf.keras.layers.Dropout(rate=self.dropout_rate)
 
         self._self_attention_mask = layers.SelfAttentionMask()
-
-        self._cls_dense = tf.keras.layers.Dense(
-            units=hidden_size,
-            activation='tanh',
-            kernel_initializer=initializer,
-            name='pooler_transform')
 
         self._transformer_layers = []
         for i in range(self.num_layers):
@@ -74,17 +83,16 @@ class TransformerEncoder(tf.keras.Model):
                 attention_dropout_rate=self.attention_dropout_rate,
                 kernel_initializer=self.initializer,
                 name='transformer/layer_%d' % i)
+            layer.build([input_shape[0] + [self.hidden_size], input_shape[0] + input_shape[0][-1:]])
             self._transformer_layers.append(layer)
 
-    def build(self, input_shape):
-        if isinstance(input_shape, tf.TensorShape):
-            input_shape = input_shape.as_list()
+        self._cls_dense = tf.keras.layers.Dense(
+            units=self.hidden_size,
+            activation='tanh',
+            kernel_initializer=self.initializer,
+            name='pooler_transform')
 
-        self._embedding_layer = layers.OnDeviceEmbedding(
-            vocab_size=self.vocab_size,
-            embedding_width=self.hidden_size,
-            initializer=self.initializer,
-            name='word_embeddings')
+        super().build(input_shape)
 
     def call(self, inputs):
         word_ids, mask, type_ids = inputs["input_word_ids"], inputs["input_mask"], inputs["input_type_ids"]
