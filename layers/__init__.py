@@ -4,3 +4,5 @@ from layers.self_attention_mask import SelfAttentionMask
 from layers.dense_einsum import DenseEinsum
 from layers.masked_softmax import MaskedSoftmax
 from layers.transformer import Transformer
+from layers.transformer_encoder import TransformerEncoder
+from layers.albert_transformer_encoder import AlbertTransformerEncoder

@@ -1,7 +1,7 @@
 import tensorflow as tf
 from utils import tf_utils
 from configs import AlbertConfig, BertConfig
-import models
+import layers
 
 
 class BertClassifier(tf.keras.Model):
@@ -85,10 +85,10 @@ class BertClassifier(tf.keras.Model):
         if isinstance(bert_config, AlbertConfig):
             kwargs['embedding_width'] = bert_config.embedding_size
             kwargs['num_hidden_groups'] = bert_config.num_hidden_groups
-            return models.AlbertTransformerEncoder(**kwargs)
+            return layers.AlbertTransformerEncoder(**kwargs)
         else:
             assert isinstance(bert_config, BertConfig)
-            return models.TransformerEncoder(**kwargs)
+            return layers.TransformerEncoder(**kwargs)
 
     def init_pre_training_weights(self, checkpoint_file):
         """init bert weights from pre training checkpoint

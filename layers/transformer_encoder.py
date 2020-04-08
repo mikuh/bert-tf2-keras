@@ -3,7 +3,7 @@ from utils import activations
 import layers
 
 
-class TransformerEncoder(tf.keras.Model):
+class TransformerEncoder(tf.keras.layers.Layer):
     def __init__(self,
                  vocab_size,
                  hidden_size=768,
@@ -135,3 +135,17 @@ class TransformerEncoder(tf.keras.Model):
     @classmethod
     def from_config(cls, config):
         return cls(**config)
+
+    def get_layer(self, name):
+        if name == "word_embeddings":
+            return self._embedding_layer
+        elif name == "position_embeddings":
+            return self._position_embedding_layer
+        elif name == "type_embeddings":
+            return self._type_embedding_layer
+        elif name == "embeddings/layer_norm":
+            return self._embedding_layer_normalization
+        elif name.startswith("transformer/layer_"):
+            return self.transformer_layers[int(name.split("_")[1])]
+        elif name == "pooler_transform":
+            return self._cls_output_layer
