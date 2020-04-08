@@ -11,11 +11,11 @@ import os
 import keras.backend as K
 
 
-def get_optimizer(initial_lr, steps_per_epoch, epochs, warmup_steps):
+def get_optimizer(initial_lr, steps_per_epoch, epochs, warmup_steps, use_float16=False):
     optimizer = optimization.create_optimizer(initial_lr, steps_per_epoch * epochs, warmup_steps)
     optimizer = performance.configure_optimizer(
         optimizer,
-        use_float16=False,
+        use_float16=use_float16,
         use_graph_rewrite=False)
     return optimizer
 
@@ -28,7 +28,6 @@ def get_loss_fn(num_classes):
         # K.print_tensor(labels, message=',y_true = ')
         # K.print_tensor(logits, message=',y_predict = ')
         labels = tf.squeeze(labels)
-        # y_true = K.print_tensor(labels, message='y_true = ')
         log_probs = tf.nn.log_softmax(logits, axis=-1)
         one_hot_labels = tf.one_hot(
             tf.cast(labels, dtype=tf.int32), depth=num_classes, dtype=tf.float32)
@@ -59,11 +58,11 @@ def get_callbacks(train_batch_size, log_steps, model_dir):
 
 
 if __name__ == '__main__':
-    train_batch_size = 32
-    eval_batch_size = 32
+    train_batch_size = 64
+    eval_batch_size = 100
     sequence_length = 64
     learning_rate = 2e-5
-    train_data_size = 52661 # 368624
+    train_data_size = 368624  # 368624
     eval_data_size = 52661
     steps_per_epoch = train_data_size // train_batch_size
     epochs = 1
@@ -98,13 +97,13 @@ if __name__ == '__main__':
         # cls(dev_data)
         cls.init_pre_training_weights(checkpoint_file)
 
-        optimizer = get_optimizer(learning_rate, steps_per_epoch, epochs, None)
+        optimizer = get_optimizer(learning_rate, steps_per_epoch, epochs, warmup_steps)
         loss_fn = get_loss_fn(num_classes)
         callbacks = get_callbacks(train_batch_size, log_steps, model_dir)
 
         cls.compile(optimizer=optimizer, loss=loss_fn, metrics=[metric_fn()])
 
-        print(cls._encoder_layer.get_layer("word_embeddings").get_weights())
+        print(cls._encoder_layer.get_layer("transformer/layer_0").get_weights()[0])
 
         cls.fit(
             train_data,
@@ -114,4 +113,4 @@ if __name__ == '__main__':
             validation_steps=eval_steps,
             callbacks=callbacks)
 
-        print(cls._encoder_layer.get_layer("word_embeddings").get_weights())
+        print(cls._encoder_layer.get_layer("transformer/layer_0").get_weights()[0])

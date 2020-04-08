@@ -112,6 +112,8 @@ class Transformer(tf.keras.layers.Layer):
             axis=-1,
             epsilon=1e-12,
             dtype=tf.float32)
+        # self._attention_layer_norm.build(input_shape[0][:2] + [self._num_heads, input_shape[0][-1]//self._num_heads])
+
         self._intermediate_dense = dense_einsum.DenseEinsum(
             output_shape=self._intermediate_size,
             activation=None,
@@ -145,6 +147,7 @@ class Transformer(tf.keras.layers.Layer):
         # Use float32 in layernorm for numeric stability.
         self._output_layer_norm = tf.keras.layers.LayerNormalization(
             name="transformer/output_layer_norm", axis=-1, epsilon=1e-12, dtype=tf.float32)
+
 
         super(Transformer, self).build(input_shape)
 

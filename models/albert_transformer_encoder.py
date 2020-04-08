@@ -3,7 +3,7 @@ from utils import activations
 import layers
 
 
-class AlbertTransformerEncoder(tf.keras.Model):
+class AlbertTransformerEncoder(tf.keras.layers.Layer):
     """ALBERT (https://arxiv.org/abs/1810.04805) text encoder network.
 
       This network implements the encoder described in the paper "ALBERT: A Lite
@@ -124,6 +124,7 @@ class AlbertTransformerEncoder(tf.keras.Model):
             axis=-1,
             epsilon=1e-12,
             dtype=tf.float32)
+        self._embedding_layer_normalization.build(input_shape[0] + [self._config_dict['embedding_width']])
 
         self._embedding_dropout = tf.keras.layers.Dropout(rate=self._config_dict['dropout_rate'])
 
@@ -160,6 +161,7 @@ class AlbertTransformerEncoder(tf.keras.Model):
             activation='tanh',
             kernel_initializer=self._config_dict['initializer'],
             name='pooler_transform')
+        # self._cls_output_layer.build(input_shape[0] + [self._config_dict['hidden_size']])
 
         super().build(input_shape)
 
@@ -208,6 +210,22 @@ class AlbertTransformerEncoder(tf.keras.Model):
     def from_config(cls, config):
         return cls(**config)
 
+    def get_layer(self, name):
+        if name == "word_embeddings":
+            return self._embedding_layer
+        elif name == "position_embeddings":
+            return self._position_embedding_layer
+        elif name == "type_embeddings":
+            return self._type_embedding_layer
+        elif name == "embeddings/layer_norm":
+            return self._embedding_layer_normalization
+        elif name == "embedding_projection":
+            return self._embedding_projection_layer
+        elif name.startswith("transformer/layer_"):
+            return self.transformer_layers[int(name.split("_")[1])]
+        elif name == "pooler_transform":
+            return self._cls_output_layer
+
 
 if __name__ == '__main__':
     import numpy as np
@@ -223,11 +241,12 @@ if __name__ == '__main__':
     #
     # outputs = encoder([input1, input2, input3])
     # model = tf.keras.Model(inputs=[input1, input2, input3], outputs=outputs)
-    model.summary()
+    # model.summary()
 
-    for layer in model.layers:
-        for weight in layer.get_weights():
-            print(weight.shape)
+    # for layer in model.layers:
+    #     for weight in layer.get_weights():
+    #         print(weight.shape)
+    print(model.get_layer("embeddings/layer_norm").get_weights())
 
     # print(model.get_layer(name="transformer/layer_0").get_weights())
     # print(encoder.get_weights())
