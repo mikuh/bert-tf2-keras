@@ -92,7 +92,7 @@ class BertClassifier(tf.keras.Model):
             assert isinstance(bert_config, BertConfig)
             return layers.TransformerEncoder(**kwargs)
 
-    def init_pre_training_weights(self, checkpoint_file):
+    def init_pre_training_weights_for_albert(self, checkpoint_file):
         """init bert weights from pre training checkpoint
         """
         variables = tf.train.load_checkpoint(checkpoint_file)

@@ -129,6 +129,7 @@ vocab_file/
 data_dir/
 tf_records/
 results/
+saved_models/
 
 # Pyre type checker
 .pyre/

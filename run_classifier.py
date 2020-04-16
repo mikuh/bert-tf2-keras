@@ -5,9 +5,10 @@ from utils import keras_utils
 from utils.data_utils import create_classifier_dataset
 from utils import distribution_utils
 from models import BertClassifier
-from configs import AlbertConfig
+from configs import AlbertConfig, BertConfig
 import math
 import os
+import time
 import keras.backend as K
 
 
@@ -50,29 +51,37 @@ def get_callbacks(train_batch_size, log_steps, model_dir):
 
     summary_callback = tf.keras.callbacks.TensorBoard(os.path.join(model_dir, 'graph'), update_freq='batch')
 
-    checkpoint_path = os.path.join(model_dir, 'checkpoint-{batch:06d}')
+    checkpoint_path = os.path.join(model_dir, 'checkpoint-{epoch:02d}')
     checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
-        checkpoint_path, save_weights_only=True, save_freq=3200)
+        checkpoint_path, save_weights_only=True, save_freq=32000)
 
     return [custom_callback, summary_callback, checkpoint_callback]
 
 
 if __name__ == '__main__':
-    train_batch_size = 64
-    eval_batch_size = 100
+    train_batch_size = 32
+    eval_batch_size = 32
     sequence_length = 64
     learning_rate = 2e-5
     train_data_size = 368624  # 368624
     eval_data_size = 52661
     steps_per_epoch = train_data_size // train_batch_size
-    epochs = 1
+    epochs = 3
     warmup_steps = int(epochs * train_data_size * 0.1 / train_batch_size)
     eval_steps = int(math.ceil(eval_data_size / eval_batch_size))
     num_classes = 2
     log_steps = 1
-    model_dir = "results/classifier/"
-    bert_config_file = "/home/geb/PycharmProjects/bert_ngc/vocab_file/albert_zh/bert_config.json"
-    checkpoint_file = "/home/geb/PycharmProjects/bert_ngc/vocab_file/albert_zh/bert_model.ckpt"
+    model_dir = "results/classifier/1/"
+    bert_config_file = "/home/geb/PycharmProjects/bert/vocab_file/bert_config.json"
+    checkpoint_file = "/home/geb/PycharmProjects/bert/vocab_file/bert_model.ckpt"
+    # bert_config_file = "/home/geb/PycharmProjects/bert_ngc/vocab_file/albert_zh/bert_config.json"
+    # checkpoint_file = "/home/geb/PycharmProjects/bert_ngc/vocab_file/albert_zh/bert_model.ckpt"
+
+    checkpoint_path = "results/classifier/checkpoint-03"
+    saved_model_path = "saved_models/{}".format(int(time.time()))
+    train = True
+    predict = False
+    export = False
 
     strategy = distribution_utils.get_distribution_strategy(
         distribution_strategy='one_device',
@@ -80,37 +89,50 @@ if __name__ == '__main__':
         tpu_address=False)
 
     with strategy.scope():
-        # load data
-        train_data = create_classifier_dataset("tf_records/sentence_classifier/train.record0", sequence_length,
-                                               train_batch_size)
+        if train:
+            # load data
+            train_data = create_classifier_dataset("tf_records/sentence_classifier/train.record0", sequence_length,
+                                                   train_batch_size)
+
+            dev_data = create_classifier_dataset("tf_records/sentence_classifier/dev.record0", sequence_length,
+                                                 eval_batch_size, False)
+
+            bert_config = BertConfig.from_json_file(bert_config_file)
+
+            cls = BertClassifier(bert_config, sequence_length, num_classes)
+
+            # cls.init_pre_training_weights_for_albert(checkpoint_file)
+
+            optimizer = get_optimizer(learning_rate, steps_per_epoch, epochs, warmup_steps)
+            loss_fn = get_loss_fn(num_classes)
+            callbacks = get_callbacks(train_batch_size, log_steps, model_dir)
+
+            cls.compile(optimizer=optimizer, loss=loss_fn, metrics=[metric_fn()])
+
+            # print(cls._encoder_layer.get_layer("transformer/layer_0").get_weights()[0])
+
+            cls.fit(
+                train_data,
+                validation_data=dev_data,
+                steps_per_epoch=steps_per_epoch,
+                epochs=epochs,
+                validation_steps=eval_steps,
+                callbacks=callbacks)
 
 
+            tf.keras.models.save_model(cls, saved_model_path, save_format='tf')
 
-        dev_data = create_classifier_dataset("tf_records/sentence_classifier/dev.record0", sequence_length,
-                                             eval_batch_size, False)
+            # print(cls._encoder_layer.get_layer("transformer/layer_0").get_weights()[0])
+        elif export:
+            bert_config = AlbertConfig.from_json_file(bert_config_file)
 
+            cls = BertClassifier(bert_config, sequence_length, num_classes)
+            cls.load_weights(checkpoint_path)
+            cls.predict({"input_word_ids": tf.ones([1, 64]), "input_mask": tf.ones([1, 64]), "input_type_ids": tf.zeros([1, 64])})
+            tf.keras.models.save_model(cls, saved_model_path, save_format='tf')
 
-        bert_config = AlbertConfig.from_json_file(bert_config_file)
-
-        cls = BertClassifier(bert_config, sequence_length, num_classes)
-        # cls.build([[None, sequence_length], [None, sequence_length], [None, sequence_length]])
-        # cls(dev_data)
-        cls.init_pre_training_weights(checkpoint_file)
-
-        optimizer = get_optimizer(learning_rate, steps_per_epoch, epochs, warmup_steps)
-        loss_fn = get_loss_fn(num_classes)
-        callbacks = get_callbacks(train_batch_size, log_steps, model_dir)
-
-        cls.compile(optimizer=optimizer, loss=loss_fn, metrics=[metric_fn()])
-
-        print(cls._encoder_layer.get_layer("transformer/layer_0").get_weights()[0])
-
-        cls.fit(
-            train_data,
-            validation_data=dev_data,
-            steps_per_epoch=steps_per_epoch,
-            epochs=epochs,
-            validation_steps=eval_steps,
-            callbacks=callbacks)
-
-        print(cls._encoder_layer.get_layer("transformer/layer_0").get_weights()[0])
+        elif predict:
+            bert_config = AlbertConfig.from_json_file(bert_config_file)
+            cls = BertClassifier(bert_config, sequence_length, num_classes)
+            cls.load_weights("results/classifier/checkpoint-03")
+            # TODO ...

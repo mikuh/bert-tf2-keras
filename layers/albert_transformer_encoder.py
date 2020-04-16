@@ -228,30 +228,3 @@ class AlbertTransformerEncoder(tf.keras.layers.Layer):
             return self.transformer_layers[int(name.split("_")[1])]
         elif name == "pooler_transform":
             return self._cls_output_layer
-
-
-if __name__ == '__main__':
-    import numpy as np
-
-    model = AlbertTransformerEncoder(vocab_size=20128, type_vocab_size=2, name="transformer_encoder")
-    model.build([[None, 64], [None, 64], [None, 64]])
-    # from utils.data_utils import create_classifier_dataset
-    # train_data = create_classifier_dataset("tf_records/sentence_classifier/train.record0", 64,32)
-    # model(train_data)
-    # input1 = tf.keras.Input(shape=(50,), dtype=tf.int32)
-    # input2 = tf.keras.Input(shape=(50,), dtype=tf.int32)
-    # input3 = tf.keras.Input(shape=(50,), dtype=tf.int32)
-    #
-    # outputs = encoder([input1, input2, input3])
-    # model = tf.keras.Model(inputs=[input1, input2, input3], outputs=outputs)
-    # model.summary()
-
-    # for layer in model.layers:
-    #     for weight in layer.get_weights():
-    #         print(weight.shape)
-    print(model.get_layer("embeddings/layer_norm").get_weights())
-
-    # print(model.get_layer(name="transformer/layer_0").get_weights())
-    # print(encoder.get_weights())
-    # for layer_weights in encoder.get_weights():
-    #     print(layer_weights.shape)

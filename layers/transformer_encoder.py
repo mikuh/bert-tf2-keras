@@ -7,7 +7,7 @@ class TransformerEncoder(tf.keras.layers.Layer):
     def __init__(self,
                  vocab_size,
                  hidden_size=768,
-                 num_layers=12,
+                 num_hidden_layers=12,
                  num_attention_heads=12,
                  sequence_length=512,
                  max_sequence_length=None,
@@ -23,7 +23,7 @@ class TransformerEncoder(tf.keras.layers.Layer):
 
         self.vocab_size = vocab_size
         self.hidden_size = hidden_size
-        self.num_layers = num_layers
+        self.num_layers = num_hidden_layers
         self.num_attention_heads = num_attention_heads
         self.intermediate_size = intermediate_size
         self.activation = activation = tf.keras.activations.get(activation)
@@ -68,6 +68,7 @@ class TransformerEncoder(tf.keras.layers.Layer):
             axis=-1,
             epsilon=1e-12,
             dtype=tf.float32)
+        self._layer_normalization.build(input_shape[0] + [self.hidden_size])
 
         self._embedding_dropout = tf.keras.layers.Dropout(rate=self.dropout_rate)
 
@@ -95,15 +96,16 @@ class TransformerEncoder(tf.keras.layers.Layer):
         super().build(input_shape)
 
     def call(self, inputs):
-        word_ids, mask, type_ids = inputs["input_word_ids"], inputs["input_mask"], inputs["input_type_ids"]
+        word_ids, mask, type_ids = inputs
 
         word_embeddings = self._embedding_layer(tf.cast(word_ids, tf.int32))
         position_embeddings = self._position_embedding_layer(tf.cast(word_embeddings, tf.int32))
         type_embeddings = self._type_embedding_layer(tf.cast(type_ids, tf.int32))
 
-        embeddings = tf.keras.layers.Add()([word_embeddings, position_embeddings, type_embeddings])
+        # embeddings = tf.keras.layers.Add()([word_embeddings, position_embeddings, type_embeddings])
+        embeddings = word_embeddings + position_embeddings + type_embeddings
         embeddings = self._layer_normalization(embeddings)
-        embeddings = self._dropout(embeddings)
+        embeddings = self._embedding_dropout(embeddings)
 
         data = embeddings
         attention_mask = self._self_attention_mask([data, mask])
@@ -144,7 +146,7 @@ class TransformerEncoder(tf.keras.layers.Layer):
         elif name == "type_embeddings":
             return self._type_embedding_layer
         elif name == "embeddings/layer_norm":
-            return self._embedding_layer_normalization
+            return self._layer_normalization
         elif name.startswith("transformer/layer_"):
             return self.transformer_layers[int(name.split("_")[1])]
         elif name == "pooler_transform":
