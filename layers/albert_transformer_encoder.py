@@ -98,6 +98,7 @@ class AlbertTransformerEncoder(tf.keras.layers.Layer):
     def build(self, input_shape):
         if isinstance(input_shape, tf.TensorShape):
             input_shape = input_shape.as_list()
+
         self._embedding_layer = layers.OnDeviceEmbedding(
             vocab_size=self._config_dict['vocab_size'],
             embedding_width=self._config_dict['embedding_width'],
@@ -132,9 +133,11 @@ class AlbertTransformerEncoder(tf.keras.layers.Layer):
             output_shape=self._config_dict['hidden_size'],
             kernel_initializer=self._config_dict['initializer'],
             name='embedding_projection')
+
         self._embedding_projection_layer.build(input_shape=input_shape[0] + [self._config_dict['embedding_width']])
 
         self._self_attention_mask = layers.SelfAttentionMask()
+
 
         # transformer layer
         self._transformer_layers = []
@@ -161,15 +164,15 @@ class AlbertTransformerEncoder(tf.keras.layers.Layer):
             activation='tanh',
             kernel_initializer=self._config_dict['initializer'],
             name='pooler_transform')
-        # self._cls_output_layer.build(input_shape[0] + [self._config_dict['hidden_size']])
+        self._cls_output_layer.build(input_shape[0] + [self._config_dict['hidden_size']])
 
         super().build(input_shape)
 
     def call(self, inputs):
         word_ids, mask, type_ids = inputs
-        word_embeddings = self._embedding_layer(tf.cast(word_ids, tf.int32))
-        position_embeddings = self._position_embedding_layer(tf.cast(word_embeddings, tf.int32))
-        type_embeddings = self._type_embedding_layer(tf.cast(type_ids, tf.int32))
+        word_embeddings = self._embedding_layer(word_ids)
+        position_embeddings = self._position_embedding_layer(word_embeddings)
+        type_embeddings = self._type_embedding_layer(type_ids)
 
         # embeddings = tf.keras.layers.Add()([word_embeddings, position_embeddings, type_embeddings])
         embeddings = word_embeddings + position_embeddings + type_embeddings

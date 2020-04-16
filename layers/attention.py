@@ -2,7 +2,6 @@ import math
 import tensorflow as tf
 from layers import dense_einsum, masked_softmax
 
-
 class MultiHeadAttention(tf.keras.layers.Layer):
     """MultiHeadAttention layer.
 
@@ -56,6 +55,7 @@ class MultiHeadAttention(tf.keras.layers.Layer):
         self._bias_regularizer = tf.keras.regularizers.get(bias_regularizer)
         self._kernel_constraint = tf.keras.constraints.get(kernel_constraint)
         self._bias_constraint = tf.keras.constraints.get(bias_constraint)
+        self._activity_regularizer = tf.keras.regularizers.get(activity_regularizer)
 
         self._query_dense = dense_einsum.DenseEinsum(
             output_shape=(self._num_heads, self._head_size),
@@ -154,7 +154,6 @@ class MultiHeadAttention(tf.keras.layers.Layer):
         # Normalize the attention scores to probabilities.
         # `attention_probs` = [B, N, F, T]
         attention_probs = self._masked_softmax([attention_scores, attention_mask])
-
         # This is actually dropping out entire tokens to attend to, which might
         # seem a bit unusual, but is taken from the original Transformer paper.
         attention_probs = self._dropout(attention_probs)

@@ -48,7 +48,9 @@ class BertClassifier(tf.keras.Model):
     #          [None, self._config["sequence_length"]]])
 
     def call(self, inputs):
-        inputs = [inputs["input_word_ids"], inputs["input_mask"], inputs["input_type_ids"]]
+
+        inputs = [tf.cast(inputs["input_word_ids"], tf.int32), tf.cast(inputs["input_mask"], tf.int32),
+                  tf.cast(inputs["input_type_ids"], tf.int32)]
 
         _, cls_output = self._encoder_layer(inputs)
 
@@ -137,25 +139,24 @@ class BertClassifier(tf.keras.Model):
                     "bert/encoder/transformer/group_0/inner_group_0/attention_1/output/dense/kernel"),
                     [self.bert_config.num_attention_heads, -1, self.bert_config.hidden_size]),
                 variables.get_tensor("bert/encoder/transformer/group_0/inner_group_0/attention_1/output/dense/bias"),
-                # variables.get_tensor("bert/encoder/transformer/group_0/inner_group_0/LayerNorm/beta"),
-                # variables.get_tensor("bert/encoder/transformer/group_0/inner_group_0/LayerNorm/gamma"),
+                variables.get_tensor("bert/encoder/transformer/group_0/inner_group_0/LayerNorm/beta"),
+                variables.get_tensor("bert/encoder/transformer/group_0/inner_group_0/LayerNorm/gamma"),
                 variables.get_tensor("bert/encoder/transformer/group_0/inner_group_0/ffn_1/intermediate/dense/kernel"),
                 variables.get_tensor("bert/encoder/transformer/group_0/inner_group_0/ffn_1/intermediate/dense/bias"),
                 variables.get_tensor(
                     "bert/encoder/transformer/group_0/inner_group_0/ffn_1/intermediate/output/dense/kernel"),
                 variables.get_tensor(
                     "bert/encoder/transformer/group_0/inner_group_0/ffn_1/intermediate/output/dense/bias"),
-                # variables.get_tensor("bert/encoder/transformer/group_0/inner_group_0/LayerNorm_1/beta"),
-                # variables.get_tensor("bert/encoder/transformer/group_0/inner_group_0/LayerNorm_1/gamma"),
+                variables.get_tensor("bert/encoder/transformer/group_0/inner_group_0/LayerNorm_1/beta"),
+                variables.get_tensor("bert/encoder/transformer/group_0/inner_group_0/LayerNorm_1/gamma"),
             ])
 
-        # self._encoder_layer.get_layer("pooler_transform").set_weights([
-        #     variables.get_tensor("bert/pooler/dense/kernel"),
-        #     variables.get_tensor("bert/pooler/dense/bias"),
-        # ])
+        self._encoder_layer.get_layer("pooler_transform").set_weights([
+            variables.get_tensor("bert/pooler/dense/kernel"),
+            variables.get_tensor("bert/pooler/dense/bias"),
+        ])
 
         init_vars = tf.train.list_variables(checkpoint_file)
         for name, shape in init_vars:
             if name.startswith("bert"):
                 print(f"{name}, shape={shape}, *INIT FROM CKPT SUCCESS*")
-

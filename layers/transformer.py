@@ -89,7 +89,7 @@ class Transformer(tf.keras.layers.Layer):
             kernel_constraint=self._kernel_constraint,
             bias_constraint=self._bias_constraint,
             name="transformer/self_attention")
-        self._attention_layer.build((input_shape[0], input_shape[0]))
+        self._attention_layer.build((input_shape[0], input_shape[0], input_shape[1]))
 
         self._attention_output_dense = dense_einsum.DenseEinsum(
             output_shape=hidden_size,
@@ -112,7 +112,7 @@ class Transformer(tf.keras.layers.Layer):
             axis=-1,
             epsilon=1e-12,
             dtype=tf.float32)
-        # self._attention_layer_norm.build(input_shape[0][:2] + [self._num_heads, input_shape[0][-1]//self._num_heads])
+        self._attention_layer_norm.build(input_shape[0])
 
         self._intermediate_dense = dense_einsum.DenseEinsum(
             output_shape=self._intermediate_size,
@@ -147,6 +147,7 @@ class Transformer(tf.keras.layers.Layer):
         # Use float32 in layernorm for numeric stability.
         self._output_layer_norm = tf.keras.layers.LayerNormalization(
             name="transformer/output_layer_norm", axis=-1, epsilon=1e-12, dtype=tf.float32)
+        self._output_layer_norm.build(input_shape[0])
 
 
         super(Transformer, self).build(input_shape)
@@ -161,18 +162,16 @@ class Transformer(tf.keras.layers.Layer):
 
         if attention_mask is not None:
             attention_inputs.append(attention_mask)
-        attention_output = self._attention_layer(attention_inputs)
+        attention_output = self._attention_layer(attention_inputs)  # output shape [B,F,N, H]
         attention_output = self._attention_output_dense(attention_output)
         attention_output = self._attention_dropout(attention_output, training=True)
-        attention_output = self._attention_layer_norm(input_tensor +
-                                                      attention_output)
+        attention_output = self._attention_layer_norm(input_tensor + attention_output)
         intermediate_output = self._intermediate_dense(attention_output)
         intermediate_output = self._intermediate_activation_layer(intermediate_output)
         layer_output = self._output_dense(intermediate_output)
         layer_output = self._output_dropout(layer_output, training=True)
         # During mixed precision training, attention_output is from layer norm and
-        # is always fp32 for now. Cast layer_output to fp32 for the subsequent
-        # add.
+        # is always fp32 for now. Cast layer_output to fp32 for the subsequent add.
         layer_output = tf.cast(layer_output, tf.float32)
         layer_output = self._output_layer_norm(layer_output + attention_output)
 
