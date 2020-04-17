@@ -21,6 +21,9 @@ class TransformerEncoder(tf.keras.layers.Layer):
                  **kwargs):
         super(TransformerEncoder, self).__init__(**kwargs)
 
+        if not max_sequence_length:
+            max_sequence_length = sequence_length
+
         self.vocab_size = vocab_size
         self.hidden_size = hidden_size
         self.num_layers = num_hidden_layers
@@ -32,11 +35,7 @@ class TransformerEncoder(tf.keras.layers.Layer):
         self.initializer = initializer = tf.keras.initializers.get(initializer)
         self.type_vocab_size = type_vocab_size
         self.return_all_encoder_outputs = return_all_encoder_outputs
-
         self.max_sequence_length = max_sequence_length
-
-        if not max_sequence_length:
-            self.max_sequence_length = sequence_length
 
     def build(self, input_shape):
         if isinstance(input_shape, tf.TensorShape):
@@ -98,7 +97,6 @@ class TransformerEncoder(tf.keras.layers.Layer):
 
     def call(self, inputs):
         word_ids, mask, type_ids = inputs
-
         word_embeddings = self._embedding_layer(tf.cast(word_ids, tf.int32))
         position_embeddings = self._position_embedding_layer(tf.cast(word_embeddings, tf.int32))
         type_embeddings = self._type_embedding_layer(tf.cast(type_ids, tf.int32))
@@ -106,7 +104,7 @@ class TransformerEncoder(tf.keras.layers.Layer):
         # embeddings = tf.keras.layers.Add()([word_embeddings, position_embeddings, type_embeddings])
         embeddings = word_embeddings + position_embeddings + type_embeddings
         embeddings = self._layer_normalization(embeddings)
-        embeddings = self._embedding_dropout(embeddings)
+        embeddings = self._embedding_dropout(embeddings, training=True)
 
         data = embeddings
         attention_mask = self._self_attention_mask([data, mask])
@@ -115,9 +113,7 @@ class TransformerEncoder(tf.keras.layers.Layer):
             data = layer([data, attention_mask])
             encoder_outputs.append(data)
 
-        first_token_tensor = (
-            tf.keras.layers.Lambda(lambda x: tf.squeeze(x[:, 0:1, :], axis=1))(
-                encoder_outputs[-1]))
+        first_token_tensor = tf.keras.layers.Lambda(lambda x: tf.squeeze(x[:, 0:1, :], axis=1))(encoder_outputs[-1])
         cls_output = self._cls_dense(first_token_tensor)
 
         if self.return_all_encoder_outputs:
@@ -149,6 +145,6 @@ class TransformerEncoder(tf.keras.layers.Layer):
         elif name == "embeddings/layer_norm":
             return self._layer_normalization
         elif name.startswith("transformer/layer_"):
-            return self.transformer_layers[int(name.split("_")[1])]
+            return self._transformer_layers[int(name.split("_")[1])]
         elif name == "pooler_transform":
             return self._cls_dense

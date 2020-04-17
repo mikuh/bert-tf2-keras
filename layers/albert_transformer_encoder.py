@@ -89,12 +89,6 @@ class AlbertTransformerEncoder(tf.keras.layers.Layer):
             'return_all_encoder_outputs': return_all_encoder_outputs
         }
 
-        self._cls_output_layer = tf.keras.layers.Dense(
-            units=hidden_size,
-            activation='tanh',
-            kernel_initializer=initializer,
-            name='pooler_transform')
-
     def build(self, input_shape):
         if isinstance(input_shape, tf.TensorShape):
             input_shape = input_shape.as_list()

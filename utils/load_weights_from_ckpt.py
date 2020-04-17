@@ -18,8 +18,8 @@ def load_from_google_bert(model, init_checkpoint):
         variables.get_tensor("bert/embeddings/token_type_embeddings")])
 
     model._encoder_layer.get_layer("embeddings/layer_norm").set_weights([
-        variables.get_tensor("bert/embeddings/LayerNorm/beta"),
-        variables.get_tensor("bert/embeddings/LayerNorm/gamma")
+        variables.get_tensor("bert/embeddings/LayerNorm/gamma"),
+        variables.get_tensor("bert/embeddings/LayerNorm/beta")
     ])
 
     # multi attention weights
@@ -47,14 +47,14 @@ def load_from_google_bert(model, init_checkpoint):
                 "bert/encoder/layer_{}/attention/output/dense/kernel".format(i)),
                 [model.bert_config.num_attention_heads, -1, model.bert_config.hidden_size]),
             variables.get_tensor("bert/encoder/layer_{}/attention/output/dense/bias".format(i)),
-            variables.get_tensor("bert/encoder/layer_{}/attention/output/LayerNorm/beta".format(i)),
             variables.get_tensor("bert/encoder/layer_{}/attention/output/LayerNorm/gamma".format(i)),
+            variables.get_tensor("bert/encoder/layer_{}/attention/output/LayerNorm/beta".format(i)),
             variables.get_tensor("bert/encoder/layer_{}/intermediate/dense/kernel".format(i)),
             variables.get_tensor("bert/encoder/layer_{}/intermediate/dense/bias".format(i)),
             variables.get_tensor("bert/encoder/layer_{}/output/dense/kernel".format(i)),
             variables.get_tensor("bert/encoder/layer_{}/output/dense/bias".format(i)),
-            variables.get_tensor("bert/encoder/layer_{}/output/LayerNorm/beta".format(i)),
             variables.get_tensor("bert/encoder/layer_{}/output/LayerNorm/gamma".format(i)),
+            variables.get_tensor("bert/encoder/layer_{}/output/LayerNorm/beta".format(i)),
         ])
 
     model._encoder_layer.get_layer("pooler_transform").set_weights([
@@ -84,8 +84,8 @@ def load_from_google_albert(model, init_checkpoint):
         variables.get_tensor("bert/embeddings/token_type_embeddings")])
 
     model._encoder_layer.get_layer("embeddings/layer_norm").set_weights([
-        variables.get_tensor("bert/embeddings/LayerNorm/beta"),
-        variables.get_tensor("bert/embeddings/LayerNorm/gamma")
+        variables.get_tensor("bert/embeddings/LayerNorm/gamma"),
+        variables.get_tensor("bert/embeddings/LayerNorm/beta")
     ])
 
     model._encoder_layer.get_layer("embedding_projection").set_weights([
@@ -118,16 +118,16 @@ def load_from_google_albert(model, init_checkpoint):
                 "bert/encoder/transformer/group_0/inner_group_0/attention_1/output/dense/kernel"),
                 [model.bert_config.num_attention_heads, -1, model.bert_config.hidden_size]),
             variables.get_tensor("bert/encoder/transformer/group_0/inner_group_0/attention_1/output/dense/bias"),
-            variables.get_tensor("bert/encoder/transformer/group_0/inner_group_0/LayerNorm/beta"),
             variables.get_tensor("bert/encoder/transformer/group_0/inner_group_0/LayerNorm/gamma"),
+            variables.get_tensor("bert/encoder/transformer/group_0/inner_group_0/LayerNorm/beta"),
             variables.get_tensor("bert/encoder/transformer/group_0/inner_group_0/ffn_1/intermediate/dense/kernel"),
             variables.get_tensor("bert/encoder/transformer/group_0/inner_group_0/ffn_1/intermediate/dense/bias"),
             variables.get_tensor(
                 "bert/encoder/transformer/group_0/inner_group_0/ffn_1/intermediate/output/dense/kernel"),
             variables.get_tensor(
                 "bert/encoder/transformer/group_0/inner_group_0/ffn_1/intermediate/output/dense/bias"),
-            variables.get_tensor("bert/encoder/transformer/group_0/inner_group_0/LayerNorm_1/beta"),
             variables.get_tensor("bert/encoder/transformer/group_0/inner_group_0/LayerNorm_1/gamma"),
+            variables.get_tensor("bert/encoder/transformer/group_0/inner_group_0/LayerNorm_1/beta"),
         ])
 
     model._encoder_layer.get_layer("pooler_transform").set_weights([
