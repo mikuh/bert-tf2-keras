@@ -2,6 +2,7 @@ import tensorflow as tf
 import six
 from utils import activations
 
+
 def get_shape_list(tensor, expected_rank=None, name=None):
     """Returns a list of the shape of tensor, preferring static dimensions.
 
@@ -62,7 +63,6 @@ def assert_rank(tensor, expected_rank, name=None):
             (name, actual_rank, str(tensor.shape), str(expected_rank)))
 
 
-# TODO(hongkuny): consider moving custom string-map lookup to keras api.
 def get_activation(identifier):
     """Maps a identifier to a Python function, e.g., "relu" => `tf.nn.relu`.
 
@@ -76,6 +76,7 @@ def get_activation(identifier):
     Returns:
       A Python function corresponding to the activation function.
     """
+
     if isinstance(identifier, six.string_types):
         name_to_fn = {
             "gelu": activations.gelu,
@@ -86,4 +87,5 @@ def get_activation(identifier):
         identifier = str(identifier).lower()
         if identifier in name_to_fn:
             return tf.keras.activations.get(name_to_fn[identifier])
+        return tf.keras.activations.get(identifier)
     return tf.keras.activations.get(identifier)

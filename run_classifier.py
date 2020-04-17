@@ -61,7 +61,7 @@ def get_callbacks(train_batch_size, log_steps, model_dir):
 if __name__ == '__main__':
 
     train_batch_size = 32
-    eval_batch_size = 32
+    eval_batch_size = 64
     sequence_length = 64
     learning_rate = 2e-5
     train_data_size = 368624  # 368624

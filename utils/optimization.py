@@ -15,7 +15,6 @@
 """Functions and classes related to optimization (weight updates)."""
 
 import re
-
 import tensorflow as tf
 
 
