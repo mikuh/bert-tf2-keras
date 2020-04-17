@@ -1,5 +1,5 @@
 import tensorflow as tf
-from utils import tf_utils
+from utils import tf_utils, load_weights_from_ckpt
 from configs import AlbertConfig, BertConfig
 import layers
 
@@ -40,12 +40,6 @@ class BertClassifier(tf.keras.Model):
                                    [None, self._config["sequence_length"]]])
         self._logits_layer.build([None, self.bert_config.hidden_size])
         self._predictions.build([None, self._config['num_classes']])
-
-    # def build(self, input_shape=None):
-    #
-    #     super(BertClassifier, self).build(
-    #         [[None, self._config["sequence_length"]], [None, self._config["sequence_length"]],
-    #          [None, self._config["sequence_length"]]])
 
     def call(self, inputs):
 
@@ -92,71 +86,10 @@ class BertClassifier(tf.keras.Model):
             assert isinstance(bert_config, BertConfig)
             return layers.TransformerEncoder(**kwargs)
 
-    def init_pre_training_weights_for_albert(self, checkpoint_file):
+    def init_pre_training_weights(self, checkpoint_file):
         """init bert weights from pre training checkpoint
         """
-        variables = tf.train.load_checkpoint(checkpoint_file)
-        # embedding weights
-        self._encoder_layer.get_layer("word_embeddings").set_weights([
-            variables.get_tensor("bert/embeddings/word_embeddings")])
-        self._encoder_layer.get_layer("position_embeddings").set_weights([
-            variables.get_tensor("bert/embeddings/position_embeddings")])
-        self._encoder_layer.get_layer("type_embeddings").set_weights([
-            variables.get_tensor("bert/embeddings/token_type_embeddings")])
-
-        self._encoder_layer.get_layer("embeddings/layer_norm").set_weights([
-            variables.get_tensor("bert/embeddings/LayerNorm/beta"),
-            variables.get_tensor("bert/embeddings/LayerNorm/gamma")
-        ])
-
-        self._encoder_layer.get_layer("embedding_projection").set_weights([
-            variables.get_tensor("bert/encoder/embedding_hidden_mapping_in/kernel"),
-            variables.get_tensor("bert/encoder/embedding_hidden_mapping_in/bias")
-        ])
-
-        # multi attention weights
-        for i in range(self._config['bert_config'].num_hidden_layers):
-            self._encoder_layer.get_layer("transformer/layer_{}".format(i)).set_weights([
-                tf.reshape(variables.get_tensor(
-                    "bert/encoder/transformer/group_0/inner_group_0/attention_1/self/query/kernel"),
-                    [self.bert_config.hidden_size, self.bert_config.num_attention_heads, -1]),
-                tf.reshape(
-                    variables.get_tensor("bert/encoder/transformer/group_0/inner_group_0/attention_1/self/query/bias"),
-                    [self.bert_config.num_attention_heads, -1]),
-                tf.reshape(variables.get_tensor(
-                    "bert/encoder/transformer/group_0/inner_group_0/attention_1/self/key/kernel"),
-                    [self.bert_config.hidden_size, self.bert_config.num_attention_heads, -1]),
-                tf.reshape(
-                    variables.get_tensor("bert/encoder/transformer/group_0/inner_group_0/attention_1/self/key/bias"),
-                    [self.bert_config.num_attention_heads, -1]),
-                tf.reshape(variables.get_tensor(
-                    "bert/encoder/transformer/group_0/inner_group_0/attention_1/self/value/kernel"),
-                    [self.bert_config.hidden_size, self.bert_config.num_attention_heads, -1]),
-                tf.reshape(
-                    variables.get_tensor("bert/encoder/transformer/group_0/inner_group_0/attention_1/self/value/bias"),
-                    [self.bert_config.num_attention_heads, -1]),
-                tf.reshape(variables.get_tensor(
-                    "bert/encoder/transformer/group_0/inner_group_0/attention_1/output/dense/kernel"),
-                    [self.bert_config.num_attention_heads, -1, self.bert_config.hidden_size]),
-                variables.get_tensor("bert/encoder/transformer/group_0/inner_group_0/attention_1/output/dense/bias"),
-                variables.get_tensor("bert/encoder/transformer/group_0/inner_group_0/LayerNorm/beta"),
-                variables.get_tensor("bert/encoder/transformer/group_0/inner_group_0/LayerNorm/gamma"),
-                variables.get_tensor("bert/encoder/transformer/group_0/inner_group_0/ffn_1/intermediate/dense/kernel"),
-                variables.get_tensor("bert/encoder/transformer/group_0/inner_group_0/ffn_1/intermediate/dense/bias"),
-                variables.get_tensor(
-                    "bert/encoder/transformer/group_0/inner_group_0/ffn_1/intermediate/output/dense/kernel"),
-                variables.get_tensor(
-                    "bert/encoder/transformer/group_0/inner_group_0/ffn_1/intermediate/output/dense/bias"),
-                variables.get_tensor("bert/encoder/transformer/group_0/inner_group_0/LayerNorm_1/beta"),
-                variables.get_tensor("bert/encoder/transformer/group_0/inner_group_0/LayerNorm_1/gamma"),
-            ])
-
-        self._encoder_layer.get_layer("pooler_transform").set_weights([
-            variables.get_tensor("bert/pooler/dense/kernel"),
-            variables.get_tensor("bert/pooler/dense/bias"),
-        ])
-
-        init_vars = tf.train.list_variables(checkpoint_file)
-        for name, shape in init_vars:
-            if name.startswith("bert"):
-                print(f"{name}, shape={shape}, *INIT FROM CKPT SUCCESS*")
+        if isinstance(self.bert_config, AlbertConfig):
+            load_weights_from_ckpt.load_from_google_albert(self, checkpoint_file)
+        else:
+            load_weights_from_ckpt.load_from_google_bert(self, checkpoint_file)

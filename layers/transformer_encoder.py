@@ -92,6 +92,7 @@ class TransformerEncoder(tf.keras.layers.Layer):
             activation='tanh',
             kernel_initializer=self.initializer,
             name='pooler_transform')
+        self._cls_dense.build(input_shape[0] + [self.hidden_size])
 
         super().build(input_shape)
 
@@ -150,4 +151,4 @@ class TransformerEncoder(tf.keras.layers.Layer):
         elif name.startswith("transformer/layer_"):
             return self.transformer_layers[int(name.split("_")[1])]
         elif name == "pooler_transform":
-            return self._cls_output_layer
+            return self._cls_dense

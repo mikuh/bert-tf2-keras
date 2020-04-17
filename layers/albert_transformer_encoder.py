@@ -138,7 +138,6 @@ class AlbertTransformerEncoder(tf.keras.layers.Layer):
 
         self._self_attention_mask = layers.SelfAttentionMask()
 
-
         # transformer layer
         self._transformer_layers = []
         last_name = None

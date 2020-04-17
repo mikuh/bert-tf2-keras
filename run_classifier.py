@@ -59,14 +59,15 @@ def get_callbacks(train_batch_size, log_steps, model_dir):
 
 
 if __name__ == '__main__':
+
     train_batch_size = 32
     eval_batch_size = 32
     sequence_length = 64
     learning_rate = 2e-5
     train_data_size = 368624  # 368624
-    eval_data_size = 52661
+    eval_data_size = 52661 # 52661
     steps_per_epoch = train_data_size // train_batch_size
-    epochs = 3
+    epochs = 1
     warmup_steps = int(epochs * train_data_size * 0.1 / train_batch_size)
     eval_steps = int(math.ceil(eval_data_size / eval_batch_size))
     num_classes = 2
@@ -77,7 +78,7 @@ if __name__ == '__main__':
     # bert_config_file = "/home/geb/PycharmProjects/bert_ngc/vocab_file/albert_zh/bert_config.json"
     # checkpoint_file = "/home/geb/PycharmProjects/bert_ngc/vocab_file/albert_zh/bert_model.ckpt"
 
-    checkpoint_path = "results/classifier/checkpoint-03"
+    checkpoint_path = "results/classifier/checkpoint-{:02d}".format(epochs)
     saved_model_path = "saved_models/{}".format(int(time.time()))
     train = True
     predict = False
@@ -101,7 +102,7 @@ if __name__ == '__main__':
 
             cls = BertClassifier(bert_config, sequence_length, num_classes)
 
-            # cls.init_pre_training_weights_for_albert(checkpoint_file)
+            cls.init_pre_training_weights(checkpoint_file)
 
             optimizer = get_optimizer(learning_rate, steps_per_epoch, epochs, warmup_steps)
             loss_fn = get_loss_fn(num_classes)
@@ -109,7 +110,7 @@ if __name__ == '__main__':
 
             cls.compile(optimizer=optimizer, loss=loss_fn, metrics=[metric_fn()])
 
-            # print(cls._encoder_layer.get_layer("transformer/layer_0").get_weights()[0])
+            print(cls._encoder_layer.get_layer("transformer/layer_0").get_weights()[0])
 
             cls.fit(
                 train_data,
@@ -122,7 +123,7 @@ if __name__ == '__main__':
 
             tf.keras.models.save_model(cls, saved_model_path, save_format='tf')
 
-            # print(cls._encoder_layer.get_layer("transformer/layer_0").get_weights()[0])
+            print(cls._encoder_layer.get_layer("transformer/layer_0").get_weights()[0])
         elif export:
             bert_config = AlbertConfig.from_json_file(bert_config_file)
 
@@ -134,5 +135,5 @@ if __name__ == '__main__':
         elif predict:
             bert_config = AlbertConfig.from_json_file(bert_config_file)
             cls = BertClassifier(bert_config, sequence_length, num_classes)
-            cls.load_weights("results/classifier/checkpoint-03")
+            cls.load_weights(checkpoint_path)
             # TODO ...
