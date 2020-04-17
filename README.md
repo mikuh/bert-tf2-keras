@@ -14,4 +14,4 @@
 ## 如何使用
 1. 自行实现自己的task model, 可参考我提供的[text classifier model](models/classifier.py)
 2. 训练测试可以直接使用`model.fit`和`model.predict`,可参考[run_classifier.py](run_classifier.py)
-
+![fit example](fit.png)

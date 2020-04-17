@@ -110,7 +110,7 @@ if __name__ == '__main__':
 
             cls.compile(optimizer=optimizer, loss=loss_fn, metrics=[metric_fn()])
 
-            print(cls._encoder_layer.get_layer("transformer/layer_0").get_weights()[0])
+            # print(cls._encoder_layer.get_layer("transformer/layer_0").get_weights()[0])
 
             cls.fit(
                 train_data,
@@ -123,7 +123,7 @@ if __name__ == '__main__':
 
             tf.keras.models.save_model(cls, saved_model_path, save_format='tf')
 
-            print(cls._encoder_layer.get_layer("transformer/layer_0").get_weights()[0])
+            # print(cls._encoder_layer.get_layer("transformer/layer_0").get_weights()[0])
         elif export:
             bert_config = AlbertConfig.from_json_file(bert_config_file)
 
