@@ -52,6 +52,7 @@ class Transformer(tf.keras.layers.Layer):
         self._bias_regularizer = tf.keras.regularizers.get(bias_regularizer)
         self._kernel_constraint = tf.keras.constraints.get(kernel_constraint)
         self._bias_constraint = tf.keras.constraints.get(bias_constraint)
+        self._activity_regularizer = activity_regularizer
 
     def build(self, input_shape):
         input_tensor = input_shape[0] if len(input_shape) == 2 else input_shape

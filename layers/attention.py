@@ -98,6 +98,7 @@ class MultiHeadAttention(tf.keras.layers.Layer):
         self._query_dense.build(input_shape[0])
         self._key_dense.build(input_shape[1])
         self._value_dense.build(input_shape[1])
+        super().build(input_shape)
 
     def get_config(self):
         config = {

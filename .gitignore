@@ -130,6 +130,8 @@ data_dir/
 tf_records/
 results/
 saved_models/
+data_dir/
+temp*
 
 # Pyre type checker
 .pyre/

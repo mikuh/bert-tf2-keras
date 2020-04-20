@@ -1,2 +1,4 @@
-
+from models.base_model import BaseModel
 from models.classifier import BertClassifier
+from models.sequence_labeling import BertSequenceLabeling
+from models.sequence_embedding import BertSequenceEmbedding

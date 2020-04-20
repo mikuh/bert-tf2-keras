@@ -27,7 +27,7 @@ def get_loss_fn(num_classes):
     def classification_loss_fn(labels, logits):
         """Classification loss."""
         # K.print_tensor(labels, message=',y_true = ')
-        # K.print_tensor(logits, message=',y_predict = ')
+        # K.print_tensor(logits[0], message=',y_predict = ')
         labels = tf.squeeze(labels)
         log_probs = tf.nn.log_softmax(logits, axis=-1)
         one_hot_labels = tf.one_hot(
@@ -73,10 +73,10 @@ if __name__ == '__main__':
     num_classes = 2
     log_steps = 1
     model_dir = "results/classifier/1/"
-    bert_config_file = "/home/geb/PycharmProjects/bert/vocab_file/bert_config.json"
-    checkpoint_file = "/home/geb/PycharmProjects/bert/vocab_file/bert_model.ckpt"
-    # bert_config_file = "/home/geb/PycharmProjects/bert_ngc/vocab_file/albert_zh/bert_config.json"
-    # checkpoint_file = "/home/geb/PycharmProjects/bert_ngc/vocab_file/albert_zh/bert_model.ckpt"
+    # bert_config_file = "/home/geb/PycharmProjects/bert/vocab_file/bert_config.json"
+    # checkpoint_file = "/home/geb/PycharmProjects/bert/vocab_file/bert_model.ckpt"
+    bert_config_file = "/home/geb/PycharmProjects/bert_ngc/vocab_file/albert_zh/bert_config.json"
+    checkpoint_file = "/home/geb/PycharmProjects/bert_ngc/vocab_file/albert_zh/bert_model.ckpt"
 
     checkpoint_path = "results/classifier/checkpoint-{:02d}".format(epochs)
     saved_model_path = "saved_models/{}".format(int(time.time()))
@@ -98,9 +98,9 @@ if __name__ == '__main__':
             dev_data = create_classifier_dataset("tf_records/sentence_classifier/dev.record0", sequence_length,
                                                  eval_batch_size, False)
 
-            bert_config = BertConfig.from_json_file(bert_config_file)
+            bert_config = AlbertConfig.from_json_file(bert_config_file)
 
-            cls = BertClassifier(bert_config, sequence_length, num_classes)
+            cls = BertClassifier(bert_config, sequence_length, num_classes, output="logits")
 
             cls.init_pre_training_weights(checkpoint_file)
 
